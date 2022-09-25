@@ -1,6 +1,6 @@
 import traceback
+from torch import autocast
 import requests
-import asyncio
 import discord
 from discord.ext import commands
 from typing import Optional
@@ -17,14 +17,14 @@ pipe = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4",
                                                 revision="fp16", 
                                                 torch_dtype=torch.float16,
                                                 use_auth_token=True)
-
 pipe=pipe.to("cuda")
+
 class StableCog(commands.Cog, name='Stable Diffusion', description='Create images from natural language.'):
     def __init__(self, bot):
         self.text2image_model = pipe
         self.bot = bot
 
-    @commands.slash_command(description='Create an image.')
+    @discord.slash_command(name='dream')
     @option(
         'prompt',
         str,
@@ -92,7 +92,8 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
             gen.manual_seed(seed)
         try:
             if (init_image is None) and (mask_image is None):
-                output = self.text2image_model(prompt=query, num_inference_steps=steps, guidance_scale=guidance_scale, generator=gen ,height=height, width=width)
+                with torch.autocast('cuda'):
+                    output = self.text2image_model(prompt=query, num_inference_steps=steps, guidance_scale=guidance_scale, generator=gen ,height=height, width=width)
             elif (init_image is not None):
                 raise Exception('Não implementado ainda!')
                 image = Image.open(requests.get(init_image.url, stream=True).raw).convert('RGB')
